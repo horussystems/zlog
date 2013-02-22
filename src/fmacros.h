@@ -8,7 +8,7 @@
 #define _XOPEN_SOURCE 700
 #endif
 #ifndef _XOPEN_SOURCE_EXTENDED
-#define _XOPEN_SOURCE_EXTENDED
+# define _XOPEN_SOURCE_EXTENDED
 #endif
 #elif !defined(__APPLE__)   // Enables 'phtread_threadid_np' in MacOSX SDKs
 #define _XOPEN_SOURCE
