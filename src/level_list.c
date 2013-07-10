@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
-#include "syslog.h"
 
 #include "zc_defs.h"
 #include "level.h"
