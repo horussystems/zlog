@@ -364,9 +364,9 @@ static int zlog_rule_output_pipe(zlog_rule_t * a_rule, zlog_thread_t * a_thread)
 	return 0;
 }
 
-#ifndef _WIN32
 static int zlog_rule_output_syslog(zlog_rule_t * a_rule, zlog_thread_t * a_thread)
 {
+#ifndef _WIN32
 	zlog_level_t *a_level;
 
 	if (zlog_format_gen_msg(a_rule->format, a_thread)) {
@@ -383,9 +383,9 @@ static int zlog_rule_output_syslog(zlog_rule_t * a_rule, zlog_thread_t * a_threa
 	zlog_buf_seal(a_thread->msg_buf);
 	syslog(a_rule->syslog_facility | a_level->syslog_level,
 		"%s",  zlog_buf_str(a_thread->msg_buf));
+#endif
 	return 0;
 }
-#endif
 
 static int zlog_rule_output_static_record(zlog_rule_t * a_rule, zlog_thread_t * a_thread)
 {
@@ -479,9 +479,9 @@ static int zlog_rule_output_stderr(zlog_rule_t * a_rule,
 	return 0;
 }
 /*******************************************************************************/
-#ifndef _WIN32
 static int syslog_facility_atoi(char *facility)
 {
+#ifndef _WIN32
 	/* guess no unix system will choose -187
 	 * as its syslog facility, so it is a safe return value
 	 */
@@ -507,10 +507,10 @@ static int syslog_facility_atoi(char *facility)
 	if (STRICMP(facility, ==, "LOG_SYSLOG")) return LOG_SYSLOG;
 		return LOG_AUTHPRIV;
 
+#endif
 	zc_error("wrong syslog facility[%s], must in LOG_LOCAL[0-7] or LOG_USER", facility);
 	return -187;
 }
-#endif
 
 static int zlog_rule_parse_path(char *path_start, /* start with a " */
 		char *path_str, size_t path_size, zc_arraylist_t **path_specs,
@@ -757,7 +757,6 @@ zlog_rule_t *zlog_rule_new(char *line,
 
 	p = NULL;
 	switch (file_path[0]) {
-#ifndef _WIN32
 	case '-' :
 		/* sync file each time write log */
 		if (file_path[1] != '"') {
@@ -769,6 +768,7 @@ zlog_rule_t *zlog_rule_new(char *line,
 		a_rule->fsync_period = 0;
 
 		p = file_path + 1;
+#ifndef _WIN32
 		a_rule->file_open_flags = O_SYNC;
 		/* fall through */
 #endif
@@ -862,15 +862,15 @@ zlog_rule_t *zlog_rule_new(char *line,
 		break;
 	case '>' :
 		if (STRNCMP(file_path + 1, ==, "syslog", 6)) {
+			a_rule->output = zlog_rule_output_syslog;
+			a_rule->syslog_facility = syslog_facility_atoi(file_limit);
 #ifdef _WIN32
             zc_error("syslog not support under windows!");
 #else
-			a_rule->syslog_facility = syslog_facility_atoi(file_limit);
 			if (a_rule->syslog_facility == -187) {
 				zc_error("-187 get");
 				goto err;
 			}
-			a_rule->output = zlog_rule_output_syslog;
 			openlog(NULL, LOG_NDELAY | LOG_NOWAIT | LOG_PID, LOG_USER);
 #endif
 		} else if (STRNCMP(file_path + 1, ==, "stdout", 6)) {
