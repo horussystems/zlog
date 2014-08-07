@@ -14,7 +14,13 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifndef _WIN32
 #include <unistd.h>
+#else
+#include "zlog_win.h"
+#endif
+
 #include <time.h>
 
 #include "conf.h"
@@ -458,11 +464,14 @@ static int zlog_conf_build_with_file(zlog_conf_t * a_conf)
 	int section = 0;
 	/* [global:1] [levels:2] [formats:3] [rules:4] */
 
-	if (STATS_FILE(a_conf->file, &a_stat)) {
+#ifndef _WIN32
+	if (lstat(a_conf->file, &a_stat)) {
 		zc_error("lstat conf file[%s] fail, errno[%d]", a_conf->file,
 			 errno);
 		return -1;
 	}
+#endif
+
 	localtime_r(&(a_stat.st_mtime), &local_time);
 	strftime(a_conf->mtime, sizeof(a_conf->mtime), "%Y-%m-%d %H:%M:%S", &local_time);
 

@@ -19,9 +19,12 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <pthread.h>
+
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 #include "zc_defs.h"
 #include "rotater.h"
@@ -102,7 +105,25 @@ zlog_rotater_t *zlog_rotater_new(char *lock_file)
 		return NULL;
 	}
 
-	a_rotater->lock_fd = INVALID_LOCK_FD;
+	/* depends on umask of the user here
+	 * if user A create /tmp/zlog.lock 0600
+	 * user B is unable to read /tmp/zlog.lock
+	 * B has to choose another lock file except /tmp/zlog.lock
+	 */
+#ifndef _WIN32
+	 fd = open(lock_file, O_RDWR | O_CREAT,
+		  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+#else
+	FILE *f = fopen(lock_file, "wb");
+	fd = 0;
+	if (f) fd = fileno(f);
+#endif
+	if (fd < 0) {
+		zc_error("open file[%s] fail, errno[%d]", lock_file, errno);
+		goto err;
+	}
+
+	a_rotater->lock_fd = fd;
 	a_rotater->lock_file = lock_file;
 
 	//zlog_rotater_profile(a_rotater, ZC_DEBUG);
@@ -461,6 +482,8 @@ err:
 
 static int zlog_rotater_trylock(zlog_rotater_t *a_rotater)
 {
+#ifndef _WIN32
+
 	int rc;
 
 	rc = pthread_mutex_trylock(&(a_rotater->lock_mutex));
@@ -476,12 +499,16 @@ static int zlog_rotater_trylock(zlog_rotater_t *a_rotater)
 	if (a_rotater->lock_fd == INVALID_LOCK_FD) {
 		return -1;
 	}
+
+#endif
 	return 0;
 }
 
 static int zlog_rotater_unlock(zlog_rotater_t *a_rotater)
 {
 	int rc = 0;
+#ifndef _WIN32
+	struct flock fl;
 
     if (!unlock_file(a_rotater->lock_fd)) {
 		rc = -1;
@@ -493,6 +520,7 @@ static int zlog_rotater_unlock(zlog_rotater_t *a_rotater)
 		rc = -1;
 		zc_error("pthread_mutext_unlock fail, errno[%d]", errno);
 	}
+#endif
 
 	return rc;
 }
