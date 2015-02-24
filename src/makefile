@@ -65,9 +65,14 @@ STLIB_MAKE_CMD=ar rcs $(STLIBNAME)
 
 # Installation related variables
 PREFIX?=/usr/local
-INCLUDE_PATH=include
-LIBRARY_PATH=lib
-BINARY_PATH=bin
+INCLUDE_PATH?=include
+LIBRARY_PATH?=lib
+
+UNAME_SHORT := $(shell sh -c 'uname -s 2>/dev/null | cut -c -5')
+ifeq ($(uname_S),Mingw)
+LIBRARY_PATH := bin
+endif
+
 INSTALL_INCLUDE_PATH= $(PREFIX)/$(INCLUDE_PATH)
 INSTALL_LIBRARY_PATH= $(PREFIX)/$(LIBRARY_PATH)
 INSTALL_BINARY_PATH=  $(PREFIX)/$(BINARY_PATH)
